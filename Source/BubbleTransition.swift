@@ -205,6 +205,18 @@ extension BubbleTransition: UIViewControllerAnimatedTransitioning {
       let presentedControllerView = transitionContext.view(forKey: .to)!
       let originalCenter = presentedControllerView.center
       let originalSize = presentedControllerView.frame.size
+        
+      if #available(iOS 13.0, *) {
+        // nothing to do - iOS 13 does not push down the UI
+      } else {
+        // Adjust the frame size if in-call status bar is active since it pushes down the UI
+        let windowSize = containerView.window?.frame.size ?? originalSize
+    
+        if windowSize.height != originalSize.height {
+            presentedControllerView.frame.origin.y -= 40
+            presentedControllerView.frame.size.height += 22
+        }
+      }
       
       bubble = UIView()
       bubble.frame = frameForBubble(originalCenter, size: originalSize, start: startingPoint)
