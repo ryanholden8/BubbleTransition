@@ -49,11 +49,17 @@ open class BubbleTransition: NSObject {
   }
   
   /**
-   The transition duration. The same value is used in both the Present or Dismiss actions
+   The transition duration. The same value is used in the present actions
    Defaults to `0.5`
    */
   @objc open var duration = 0.5
-  
+    
+  /**
+   The transition duration for dismiss actions.
+   Defaults to `0.5`
+   */
+  @objc open var durationDismiss = 0.5
+
   /**
    The transition direction. Possible values `.present`, `.dismiss` or `.pop`
    Defaults to `.Present`
@@ -171,7 +177,13 @@ extension BubbleTransition: UIViewControllerAnimatedTransitioning {
    Required by UIViewControllerAnimatedTransitioning
    */
   public func transitionDuration(using transitionContext: UIViewControllerContextTransitioning?) -> TimeInterval {
-    return duration
+    switch transitionMode {
+    case .present:
+        return duration
+    case .dismiss, .pop:
+        return durationDismiss
+    }
+
   }
   
   /**
@@ -200,19 +212,15 @@ extension BubbleTransition: UIViewControllerAnimatedTransitioning {
       bubble.center = startingPoint
       bubble.transform = CGAffineTransform(scaleX: 0.001, y: 0.001)
       bubble.backgroundColor = bubbleColor
-      containerView.addSubview(bubble)
       
-      presentedControllerView.center = startingPoint
-      presentedControllerView.transform = CGAffineTransform(scaleX: 0.001, y: 0.001)
-      presentedControllerView.alpha = 0
+      presentedControllerView.layer.mask = bubble.layer
       containerView.addSubview(presentedControllerView)
       
       UIView.animate(withDuration: duration, animations: {
         self.bubble.transform = CGAffineTransform.identity
-        presentedControllerView.transform = CGAffineTransform.identity
-        presentedControllerView.alpha = 1
-        presentedControllerView.center = originalCenter
       }, completion: { (_) in
+        presentedControllerView.layer.mask = nil
+        fromViewController?.view.isHidden = true
         transitionContext.completeTransition(true)
         self.bubble.isHidden = true
         if toViewController?.modalPresentationStyle == .custom {
@@ -236,12 +244,12 @@ extension BubbleTransition: UIViewControllerAnimatedTransitioning {
       bubble.backgroundColor = bubbleColor
       bubble.center = startingPoint
       bubble.isHidden = false
+        
+      returningControllerView.layer.mask = bubble.layer
+      toViewController?.view.isHidden = false
       
-      UIView.animate(withDuration: duration, animations: {
+      UIView.animate(withDuration: durationDismiss, animations: {
         self.bubble.transform = CGAffineTransform(scaleX: 0.001, y: 0.001)
-        returningControllerView.transform = CGAffineTransform(scaleX: 0.001, y: 0.001)
-        returningControllerView.center = self.startingPoint
-        returningControllerView.alpha = 0
         
         if self.transitionMode == .pop {
           containerView.insertSubview(returningControllerView, belowSubview: returningControllerView)
